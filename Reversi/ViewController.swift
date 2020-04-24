@@ -361,30 +361,29 @@ extension ViewController: BoardViewDelegate {
 // MARK: Save and Load
 
 extension ViewController {
-    private var path: String {
-        (NSSearchPathForDirectoriesInDomains(.libraryDirectory, .userDomainMask, true).first! as NSString).appendingPathComponent("Game")
-    }
+    private var path: String { DataRepository.path }
     
     func saveGame() throws {
-        var output: String = ""
-        output += turn.symbol
-        for side in Disk.sides {
-            output += playerControls[side.index].selectedSegmentIndex.description
+        var _playerControls: [Player] = []
+        playerControls.forEach {
+            let player = $0.selectedSegmentIndex
+            _playerControls.append(Player(rawValue: player)!)
         }
-        output += "\n"
-        
+
+        var board: [String] = []
+
         for y in boardView.yRange {
+            var boardOutput = ""
             for x in boardView.xRange {
-                output += boardView.diskAt(x: x, y: y).symbol
+                boardOutput += boardView.diskAt(x: x, y: y).symbol
             }
-            output += "\n"
+            board.append(boardOutput)
         }
-        
-        do {
-            try output.write(toFile: path, atomically: true, encoding: .utf8)
-        } catch let error {
-            throw FileIOError.read(path: path, cause: error)
-        }
+
+        try! DataRepository().save(
+            turn: turn,
+            playerControls: _playerControls,
+            board: board)
     }
     
     func loadGame() throws {
@@ -452,12 +451,12 @@ extension ViewController {
 
 // MARK: Additional types
 
-extension ViewController {
-    enum Player: Int {
-        case manual = 0
-        case computer = 1
-    }
-}
+//extension ViewController {
+//    enum Player: Int {
+//        case manual = 0
+//        case computer = 1
+//    }
+//}
 
 final class Canceller {
     private(set) var isCancelled: Bool = false
@@ -497,32 +496,6 @@ extension Disk {
         switch self {
         case .dark: return 0
         case .light: return 1
-        }
-    }
-}
-
-extension Optional where Wrapped == Disk {
-    fileprivate init?<S: StringProtocol>(symbol: S) {
-        switch symbol {
-        case "x":
-            self = .some(.dark)
-        case "o":
-            self = .some(.light)
-        case "-":
-            self = .none
-        default:
-            return nil
-        }
-    }
-    
-    fileprivate var symbol: String {
-        switch self {
-        case .some(.dark):
-            return "x"
-        case .some(.light):
-            return "o"
-        case .none:
-            return "-"
         }
     }
 }
